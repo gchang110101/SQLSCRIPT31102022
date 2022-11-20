@@ -1,18 +1,81 @@
-select * from [CATALOGO].[Editorial]
+/* view sin joins
 
-select * from [CATALOGO].[Autor]
+SELECT Lib.ISBN, Lib.titulo as Titulo, A.nombre as Autor, Lib.MFN, 
+	nombre_editorial as Editorial, 
+	nombre_clasificacion as Clasificacion
 
-select * from [CATALOGO].[Clasificacion]
-where codigo_clasificacion LIKE 'CL03'
+FROM [CATALOGO].[Libro] Lib, [CATALOGO].[Editorial] Edi, [CATALOGO].[Clasificacion] Cla, 
+	[CATALOGO].[Autor] A, [CATALOGO].[AutorXLibro] AL
 
+WHERE Lib.codigo_editorial = Edi.codigo_editorial 
+	and Lib.codigo_clasificacion = Cla.codigo_clasificacion 
+	and Lib.ISBN = AL.ISBN
+	and A.codigo_autor = AL.codigo_autor
+*/
 
-SELECT Lib.*,
-nombre_editorial as Editorial, nombre_clasificacion as Clasificacion 
-FROM [CATALOGO].[Libro] Lib, [CATALOGO].[Editorial] Edi, [CATALOGO].[Clasificacion] Cla
-WHERE Lib.codigo_editorial = Edi.codigo_editorial and Lib.codigo_clasificacion = Cla.codigo_clasificacion --and ISBN = '0-8213-3411'
+-- view con joins
+CREATE VIEW VW_CATALOGO
+AS
+	SELECT Lib.ISBN, Lib.titulo as Titulo, A.nombre as Autor, Lib.MFN, 
+		nombre_editorial as Editorial, nombre_clasificacion as Clasificacion
 
---delete from [CATALOGO].[Libro]
---where ISBN = '0-555-451-9'
+	FROM [CATALOGO].[Libro] Lib INNER JOIN [CATALOGO].[AutorXLibro] AL
+		ON Lib.ISBN = AL.ISBN 
+	INNER JOIN [CATALOGO].[Autor] A
+		ON AL.codigo_autor = A.codigo_autor
+	INNER JOIN [CATALOGO].[Editorial] Edi
+		ON Lib.codigo_editorial = Edi.codigo_editorial
+	INNER JOIN [CATALOGO].[Clasificacion] Cla
+		ON Lib.codigo_clasificacion = Cla.codigo_clasificacion
+
+ALTER SCHEMA [CATALOGO]
+	TRANSFER [dbo].[VW_CATALOGO]
+
+create view VW_INVENTARIO
+as
+	select Ej.codigo_inventario, Ej.numero_copia, estado, Lib.ISBN, Lib.titulo as Titulo, A.nombre as Autor, Edi.nombre_editorial as Editorial, Ubi.nombre as Ubicacion
+	from [CATALOGO].[Ejemplar] Ej
+		inner join [CATALOGO].[Libro] Lib
+			on Ej.ISBN = Lib.ISBN
+		inner join [CATALOGO].[AutorXLibro] AL
+			on Ej.ISBN = AL.ISBN
+		inner join [CATALOGO].[Autor] A
+			on AL.codigo_autor = A.codigo_autor
+		inner join [CATALOGO].[Ubicacion] Ubi
+			on Ej.codigo_ubicacion = Ubi.codigo_ubicacion
+		inner join [CATALOGO].[Editorial] Edi
+			on Lib.codigo_editorial = Edi.codigo_editorial
+
+alter schema [CATALOGO]
+	transfer [dbo].[VW_INVENTARIO]
+
+create view [CATALOGO].VW_INVENTARIO_DISPONIBLES
+as
+	select * from [CATALOGO].[VW_INVENTARIO]
+	where estado = 1
+
+create view [CATALOGO].VW_INVENTARIO_NODISPONIBLES
+as
+	select * from [CATALOGO].[VW_INVENTARIO]
+	where estado = 0
+
+--PROBAR TODAS ESTAS CONSULTAS UNA POR UNA (comentarios son cantidad de registro que tiene que mostrar)
+select * from [CATALOGO].[Autor] --50
+select * from [CATALOGO].[AutorXLibro] --50
+select * from [CATALOGO].[Clasificacion] --18
+select * from [CATALOGO].[Editorial] --50
+select * from [CATALOGO].[Ejemplar] --150 (3 copias por libro)
+select * from [CATALOGO].[Libro] --50
+select * from [CATALOGO].[Ubicacion] --50
+select * from [CATALOGO].[VW_CATALOGO] --50
+select * from [CATALOGO].[VW_INVENTARIO] --150
+order by ISBN ASC
+
+select * from [CATALOGO].[VW_INVENTARIO_DISPONIBLES] --80
+order by ISBN ASC
+
+select * from [CATALOGO].[VW_INVENTARIO_NODISPONIBLES] -- 70 
+order by ISBN ASC
 
 insert into [CATALOGO].[Autor]
 	VALUES('AU01', 'Jose Salvador Guandique') ,
@@ -190,3 +253,260 @@ insert into [CATALOGO].[Libro]
 	('137-2968-0',  'Fundamentos del Diseño',  'MFN49',  'ED36',  'CL13') ,
 	('205-22-001',  'Perfil del Catedrático UAM',  'MFN50',  'ED38',  'CL14') ,
 	('101-202-30',  'Oferta de Capacidades',  'MFN51',  'ED22',  'CL15')
+
+
+insert into [CATALOGO].[AutorXLibro]
+	values('001-002-003 ', 'AU09') ,
+	('0-111-222-3 ', 'AU08') ,
+	('0-13-561-371 ', 'AU50') ,
+	('0-201-64497 ', 'AU20') ,
+	('0-8213-3411 ', 'AU30') ,
+	('101-202-30 ', 'AU40') ,
+	('123-456-7 ', 'AU44') ,
+	('130-923-876 ', 'AU06') ,
+	('137-2968-0 ', 'AU07') ,
+	('205-22-001 ', 'AU50') ,
+	('23-12-111 ', 'AU03') ,
+	('300-500-6 ', 'AU50') ,
+	('301-555-069 ', 'AU50') ,
+	('399-499-01 ', 'AU41') ,
+	('500-600-7 ', 'AU19') ,
+	('505-504-69 ', 'AU06') ,
+	('50-77-7777 ', 'AU02') ,
+	('608-456-11 ', 'AU36') ,
+	('681-001-4 ', 'AU20') ,
+	('84-283-2677 ', 'AU49') ,
+	('84-8456-218 ', 'AU15') ,
+	('905-513-2 ', 'AU04') ,
+	('90-90-5125 ', 'AU42') ,
+	('911-911-5 ', 'AU08') ,
+	('959-242-015 ', 'AU21') ,
+	('959-7071-14 ', 'AU22') ,
+	('968-13-2764 ', 'AU42') ,
+	('968-23-0191 ', 'AU36') ,
+	('968-422-920 ', 'AU49') ,
+	('968-7260-13 ', 'AU20') ,
+	('968-843-080 ', 'AU28') ,
+	('968-880-20 ', 'AU40') ,
+	('970-05-1233 ', 'AU21') ,
+	('970-10-174 ', 'AU48') ,
+	('978-697-15 ', 'AU23') ,
+	('978-970-26 ', 'AU16') ,
+	('978-970-27 ', 'AU01') ,
+	('978-987-599-1 ', 'AU29') ,
+	('978-987-629 ', 'AU14') ,
+	('978-99924 ', 'AU19') ,
+	('978-99924-0 ', 'AU35') ,
+	('978-999-245 ', 'AU20') ,
+	('978-99964-8 ', 'AU49') ,
+	('978-99966 ', 'AU43') ,
+	('980-317-129 ', 'AU19') ,
+	('987-654-32 ', 'AU01') ,
+	('9924-33-752 ', 'AU03') ,
+	('9977-47-18 ', 'AU40') ,
+	('99924-66-05 ', 'AU17') ,
+	('999-420-7 ', 'AU27') 
+
+INSERT INTO [CATALOGO].[Ubicacion]
+	VALUES('UB01', 'I195') ,
+	('UB02', 'Y121') ,
+	('UB03', 'S219') ,
+	('UB04', 'I179') ,
+	('UB05', 'D385') ,
+	('UB06', 'E330') ,
+	('UB07', 'S389') ,
+	('UB08', 'D251') ,
+	('UB09', 'M283') ,
+	('UB10', 'W120') ,
+	('UB11', 'I373') ,
+	('UB12', 'X379') ,
+	('UB13', 'C396') ,
+	('UB14', 'Z124') ,
+	('UB15', 'G217') ,
+	('UB16', 'O188') ,
+	('UB17', 'F223') ,
+	('UB18', 'W302') ,
+	('UB19', 'U387') ,
+	('UB20', 'L171') ,
+	('UB21', 'P351') ,
+	('UB22', 'X330') ,
+	('UB23', 'G186') ,
+	('UB24', 'H216') ,
+	('UB25', 'M107') ,
+	('UB26', 'V161') ,
+	('UB27', 'B224') ,
+	('UB28', 'M362') ,
+	('UB29', 'P282') ,
+	('UB30', 'Q317') ,
+	('UB31', 'C296') ,
+	('UB32', 'W348') ,
+	('UB33', 'J104') ,
+	('UB34', 'V359') ,
+	('UB35', 'T229') ,
+	('UB36', 'T149') ,
+	('UB37', 'W180') ,
+	('UB38', 'V348') ,
+	('UB39', 'R303') ,
+	('UB40', 'U109') ,
+	('UB41', 'D101') ,
+	('UB42', 'X354') ,
+	('UB43', 'W263') ,
+	('UB44', 'W310') ,
+	('UB45', 'C221') ,
+	('UB46', 'Q194') ,
+	('UB47', 'B323') ,
+	('UB48', 'W176') ,
+	('UB49', 'J113') ,
+	('UB50', 'E271') 
+
+INSERT INTO [CATALOGO].[Ejemplar]
+	VALUES('INV01',  '1', '1', '001-002-003',  'UB01'), 
+	('INV02',  '0', '1', '0-111-222-3',  'UB02'), 
+	('INV03',  '1', '1', '0-13-561-371',  'UB03'), 
+	('INV04',  '1', '1', '0-201-64497',  'UB04'), 
+	('INV05',  '0', '1', '0-8213-3411',  'UB05'), 
+	('INV06',  '0', '1', '101-202-30',  'UB06'), 
+	('INV07',  '0', '1', '123-456-7',  'UB07'), 
+	('INV08',  '1', '1', '130-923-876',  'UB08'), 
+	('INV09',  '0', '1', '137-2968-0',  'UB09'), 
+	('INV10',  '0', '1', '205-22-001',  'UB10'), 
+	('INV11',  '0', '1', '23-12-111',  'UB11'), 
+	('INV12',  '1', '1', '300-500-6',  'UB12'), 
+	('INV13',  '1', '1', '301-555-069',  'UB13'), 
+	('INV14',  '1', '1', '399-499-01',  'UB14'), 
+	('INV15',  '1', '1', '500-600-7',  'UB15'), 
+	('INV16',  '1', '1', '505-504-69',  'UB16'), 
+	('INV17',  '1', '1', '50-77-7777',  'UB17'), 
+	('INV18',  '1', '1', '608-456-11',  'UB18'), 
+	('INV19',  '0', '1', '681-001-4',  'UB19'), 
+	('INV20',  '0', '1', '84-283-2677',  'UB20'), 
+	('INV21',  '0', '1', '84-8456-218',  'UB21'), 
+	('INV22',  '0', '1', '905-513-2',  'UB22'), 
+	('INV23',  '0', '1', '90-90-5125',  'UB23'), 
+	('INV24',  '1', '1', '911-911-5',  'UB24'), 
+	('INV25',  '0', '1', '959-242-015',  'UB25'), 
+	('INV26',  '1', '1', '959-7071-14',  'UB26'), 
+	('INV27',  '0', '1', '968-13-2764',  'UB27'), 
+	('INV28',  '0', '1', '968-23-0191',  'UB28'), 
+	('INV29',  '1', '1', '968-422-920',  'UB29'), 
+	('INV30',  '1', '1', '968-7260-13',  'UB30'), 
+	('INV31',  '1', '1', '968-843-080',  'UB31'), 
+	('INV32',  '1', '1', '968-880-20',  'UB32'), 
+	('INV33',  '1', '1', '970-05-1233',  'UB33'), 
+	('INV34',  '1', '1', '970-10-174',  'UB34'), 
+	('INV35',  '0', '1', '978-697-15',  'UB35'), 
+	('INV36',  '1', '1', '978-970-26',  'UB36'), 
+	('INV37',  '1', '1', '978-970-27',  'UB37'), 
+	('INV38',  '1', '1', '978-987-599-1',  'UB38'), 
+	('INV39',  '1', '1', '978-987-629',  'UB39'), 
+	('INV40',  '0', '1', '978-99924',  'UB40'), 
+	('INV41',  '1', '1', '978-99924-0',  'UB41'), 
+	('INV42',  '0', '1', '978-999-245',  'UB42'), 
+	('INV43',  '1', '1', '978-99964-8',  'UB43'), 
+	('INV44',  '0', '1', '978-99966',  'UB44'), 
+	('INV45',  '0', '1', '980-317-129',  'UB45'), 
+	('INV46',  '1', '1', '987-654-32',  'UB46'), 
+	('INV47',  '1', '1', '9924-33-752',  'UB47'), 
+	('INV48',  '1', '1', '9977-47-18',  'UB48'), 
+	('INV49',  '1', '1', '99924-66-05',  'UB49'), 
+	('INV50',  '0', '1', '999-420-7',  'UB50'), 
+	('INV51',  '1', '2', '001-002-003',  'UB01'), 
+	('INV52',  '1', '2', '0-111-222-3',  'UB02'), 
+	('INV53',  '1', '2', '0-13-561-371',  'UB03'), 
+	('INV54',  '1', '2', '0-201-64497',  'UB04'), 
+	('INV55',  '1', '2', '0-8213-3411',  'UB05'), 
+	('INV56',  '0', '2', '101-202-30',  'UB06'), 
+	('INV57',  '1', '2', '123-456-7',  'UB07'), 
+	('INV58',  '1', '2', '130-923-876',  'UB08'), 
+	('INV59',  '1', '2', '137-2968-0',  'UB09'), 
+	('INV60',  '0', '2', '205-22-001',  'UB10'), 
+	('INV61',  '1', '2', '23-12-111',  'UB11'), 
+	('INV62',  '1', '2', '300-500-6',  'UB12'), 
+	('INV63',  '0', '2', '301-555-069',  'UB13'), 
+	('INV64',  '1', '2', '399-499-01',  'UB14'), 
+	('INV65',  '0', '2', '500-600-7',  'UB15'), 
+	('INV66',  '1', '2', '505-504-69',  'UB16'), 
+	('INV67',  '0', '2', '50-77-7777',  'UB17'), 
+	('INV68',  '0', '2', '608-456-11',  'UB18'), 
+	('INV69',  '0', '2', '681-001-4',  'UB19'), 
+	('INV70',  '1', '2', '84-283-2677',  'UB20'), 
+	('INV71',  '0', '2', '84-8456-218',  'UB21'), 
+	('INV72',  '0', '2', '905-513-2',  'UB22'), 
+	('INV73',  '1', '2', '90-90-5125',  'UB23'), 
+	('INV74',  '0', '2', '911-911-5',  'UB24'), 
+	('INV75',  '1', '2', '959-242-015',  'UB25'), 
+	('INV76',  '1', '2', '959-7071-14',  'UB26'), 
+	('INV77',  '1', '2', '968-13-2764',  'UB27'), 
+	('INV78',  '0', '2', '968-23-0191',  'UB28'), 
+	('INV79',  '0', '2', '968-422-920',  'UB29'), 
+	('INV80',  '0', '2', '968-7260-13',  'UB30'), 
+	('INV81',  '0', '2', '968-843-080',  'UB31'), 
+	('INV82',  '0', '2', '968-880-20',  'UB32'), 
+	('INV83',  '1', '2', '970-05-1233',  'UB33'), 
+	('INV84',  '1', '2', '970-10-174',  'UB34'), 
+	('INV85',  '0', '2', '978-697-15',  'UB35'), 
+	('INV86',  '0', '2', '978-970-26',  'UB36'), 
+	('INV87',  '0', '2', '978-970-27',  'UB37'), 
+	('INV88',  '1', '2', '978-987-599-1',  'UB38'), 
+	('INV89',  '1', '2', '978-987-629',  'UB39'), 
+	('INV90',  '1', '2', '978-99924',  'UB40'), 
+	('INV91',  '1', '2', '978-99924-0',  'UB41'), 
+	('INV92',  '0', '2', '978-999-245',  'UB42'), 
+	('INV93',  '0', '2', '978-99964-8',  'UB43'), 
+	('INV94',  '1', '2', '978-99966',  'UB44'), 
+	('INV95',  '1', '2', '980-317-129',  'UB45'), 
+	('INV96',  '0', '2', '987-654-32',  'UB46'), 
+	('INV97',  '1', '2', '9924-33-752',  'UB47'), 
+	('INV98',  '1', '2', '9977-47-18',  'UB48'), 
+	('INV99',  '1', '2', '99924-66-05',  'UB49'), 
+	('INV100',  '1', '2', '999-420-7',  'UB50'), 
+	('INV101',  '1', '3', '001-002-003',  'UB01'), 
+	('INV102',  '0', '3', '0-111-222-3',  'UB02'), 
+	('INV103',  '0', '3', '0-13-561-371',  'UB03'), 
+	('INV104',  '1', '3', '0-201-64497',  'UB04'), 
+	('INV105',  '1', '3', '0-8213-3411',  'UB05'), 
+	('INV106',  '0', '3', '101-202-30',  'UB06'), 
+	('INV107',  '0', '3', '123-456-7',  'UB07'), 
+	('INV108',  '1', '3', '130-923-876',  'UB08'), 
+	('INV109',  '1', '3', '137-2968-0',  'UB09'), 
+	('INV110',  '0', '3', '205-22-001',  'UB10'), 
+	('INV111',  '1', '3', '23-12-111',  'UB11'), 
+	('INV112',  '1', '3', '300-500-6',  'UB12'), 
+	('INV113',  '0', '3', '301-555-069',  'UB13'), 
+	('INV114',  '1', '3', '399-499-01',  'UB14'), 
+	('INV115',  '0', '3', '500-600-7',  'UB15'), 
+	('INV116',  '0', '3', '505-504-69',  'UB16'), 
+	('INV117',  '1', '3', '50-77-7777',  'UB17'), 
+	('INV118',  '0', '3', '608-456-11',  'UB18'), 
+	('INV119',  '0', '3', '681-001-4',  'UB19'), 
+	('INV120',  '1', '3', '84-283-2677',  'UB20'), 
+	('INV121',  '1', '3', '84-8456-218',  'UB21'), 
+	('INV122',  '0', '3', '905-513-2',  'UB22'), 
+	('INV123',  '1', '3', '90-90-5125',  'UB23'), 
+	('INV124',  '1', '3', '911-911-5',  'UB24'), 
+	('INV125',  '1', '3', '959-242-015',  'UB25'), 
+	('INV126',  '0', '3', '959-7071-14',  'UB26'), 
+	('INV127',  '1', '3', '968-13-2764',  'UB27'), 
+	('INV128',  '0', '3', '968-23-0191',  'UB28'), 
+	('INV129',  '0', '3', '968-422-920',  'UB29'), 
+	('INV130',  '1', '3', '968-7260-13',  'UB30'), 
+	('INV131',  '0', '3', '968-843-080',  'UB31'), 
+	('INV132',  '0', '3', '968-880-20',  'UB32'), 
+	('INV133',  '1', '3', '970-05-1233',  'UB33'), 
+	('INV134',  '1', '3', '970-10-174',  'UB34'), 
+	('INV135',  '1', '3', '978-697-15',  'UB35'), 
+	('INV136',  '0', '3', '978-970-26',  'UB36'), 
+	('INV137',  '0', '3', '978-970-27',  'UB37'), 
+	('INV138',  '0', '3', '978-987-599-1',  'UB38'), 
+	('INV139',  '1', '3', '978-987-629',  'UB39'), 
+	('INV140',  '0', '3', '978-99924',  'UB40'), 
+	('INV141',  '0', '3', '978-99924-0',  'UB41'), 
+	('INV142',  '0', '3', '978-999-245',  'UB42'), 
+	('INV143',  '1', '3', '978-99964-8',  'UB43'), 
+	('INV144',  '0', '3', '978-99966',  'UB44'), 
+	('INV145',  '0', '3', '980-317-129',  'UB45'), 
+	('INV146',  '0', '3', '987-654-32',  'UB46'), 
+	('INV147',  '0', '3', '9924-33-752',  'UB47'), 
+	('INV148',  '1', '3', '9977-47-18',  'UB48'), 
+	('INV149',  '0', '3', '99924-66-05',  'UB49'), 
+	('INV150',  '0', '3', '999-420-7',  'UB50') 
