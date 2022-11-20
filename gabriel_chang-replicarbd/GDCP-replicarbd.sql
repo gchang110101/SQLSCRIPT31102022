@@ -5,6 +5,8 @@
 CREATE DATABASE BDLibros
 go
 
+select * from Autor
+
 /* Commands completed successfully.
 
 Completion time: 2022-11-16T23:09:02.7705297-06:00 */
